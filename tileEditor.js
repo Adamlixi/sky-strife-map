@@ -7,6 +7,7 @@ var tinyMapEditor = (function() {
         height = 10,
         tileSize = 32,
         srcTile = 0,
+        imgHeight = 8,
         sprite = new Image(),
         tiles, // used for demo, not *really* needed atm
         alpha,
@@ -15,6 +16,7 @@ var tinyMapEditor = (function() {
         draw,
         build = doc.getElementById('build'),
         test = doc.getElementById('test');
+        mapId = []
 
     var app = {
         getTile : function(e) {
@@ -22,7 +24,7 @@ var tinyMapEditor = (function() {
                 var row = e.layerX / tileSize | 0,
                     col = e.layerY / tileSize | 0;
 
-                if (e.target.id === 'palette') srcTile = { row : row, col : col };
+                if (e.target.id === 'palette') srcTile = { row : row, col : col , id : row + imgHeight * col};
                 return { row : row, col : col };
             }
         },
@@ -34,6 +36,8 @@ var tinyMapEditor = (function() {
                 destTile = this.getTile(e);
                 map.clearRect(destTile.row * tileSize, destTile.col * tileSize, tileSize, tileSize);
                 map.drawImage(sprite, srcTile.row * tileSize, srcTile.col * tileSize, tileSize, tileSize, destTile.row * tileSize, destTile.col * tileSize, tileSize, tileSize);
+                mapId[destTile.row + destTile.col * height] = srcTile.id;
+                console.log(mapId);
             }
         },
 
@@ -70,6 +74,7 @@ var tinyMapEditor = (function() {
                 } else if (e.target.id === 'tileEditor' && !srcTile) {
                     destTile = this.getTile(e);
                     map.clearRect(destTile.row * tileSize, destTile.col * tileSize, tileSize, tileSize);
+                    mapId[destTile.row + height * destTile.col] = undefined;
                 }
             }
         },
@@ -93,6 +98,7 @@ var tinyMapEditor = (function() {
             if (e.target.id === 'clear') {
                 map.clearRect(0, 0, map.canvas.width, map.canvas.height);
                 this.destroy();
+                mapId = []
                 build.disabled = false;
             }
         },
@@ -102,42 +108,37 @@ var tinyMapEditor = (function() {
                 var obj = {},
                     pixels,
                     len,
-                    x, y, z;
+                    x, y, z, i, v, t;
+                t = 0;
 
                 tiles = []; // graphical tiles (not currently needed, can be used to create standard tile map)
                 alpha = []; // collision map
+                outPut = [];
 
-                for (x = 0; x < width; x++) { // tiles across
-                    tiles[x] = [];
-                    alpha[x] = [];
-
-                    for (y = 0; y < height; y++) { // tiles down
-                        pixels = map.getImageData(x * tileSize, y * tileSize, tileSize, tileSize);
-                        len = pixels.data.length;
-
-                        tiles[x][y] = pixels; // store ALL tile data
-                        alpha[x][y] = [];
-
-                        for (z = 0; z < len; z += 4) {
-                            pixels.data[z] = 0;
-                            pixels.data[z + 1] = 0;
-                            pixels.data[z + 2] = 0;
-                            alpha[x][y][z / 4] = pixels.data[z + 3]; // store alpha data only
-                        }
-
-                        if (alpha[x][y].indexOf(0) === -1) { // solid tile
-                            alpha[x][y] = 1;
-                        } else if (alpha[x][y].indexOf(255) === -1) { // transparent tile
-                            alpha[x][y] = 0;
-                        } else { // partial alpha, build pixel map
-                            alpha[x][y] = this.sortPartial(alpha[x][y]);
-                            tiles[x][y] = pixels; // (temporarily) used for drawing map
+                for (i = 0; i < mapId.length ; i ++) {
+                    x = i % height;
+                    y = Math.floor(i / height);
+                    v = mapId[i];
+                    if (v === -1 || v === undefined) {
+                        continue
+                    }
+                    if (!tileMap[v]) {
+                        continue
+                    }
+                    outPut[t] = {
+                        templateId:tileMap[v],
+                        values:{
+                            Position:{
+                                x:x,
+                                y:y,
+                            }
                         }
                     }
+                    t ++;
                 }
-
-                this.outputJSON();
-                this.drawMap();
+                console.log(outPut)
+                output = JSON.stringify(outPut);
+                doc.getElementsByTagName('textarea')[0].value = output;
             }
         },
 
@@ -225,7 +226,7 @@ var tinyMapEditor = (function() {
         },
 
         init : function() {
-            sprite.src = 'assets/tilemap_32a.png';
+            sprite.src = 'assets/map-maker-tileset.png';
             map.canvas.width = width * tileSize;
             map.canvas.height = height * tileSize;
             this.drawTool();
@@ -244,3 +245,33 @@ var tinyMapEditor = (function() {
     return app;
 
 })();
+
+tileMap = {
+    0:"Grass",
+    1:"Forest",
+    2:"Mountain",
+    3:"Water",
+    4:"WoodenWall",
+    5:"StoneWall",
+    8:"Settlement",
+    9:"SpawnSettlement",
+    10:"BlazingHeartShrine",
+    11:"Portal",
+    12:"SummoningAltar",
+    13:"GoldMine",
+    16:"EmberCrownShrine",
+    18:"EscapePortal",
+    19:"MapCenterMarker",
+    22:"Village",
+    24:"LavaGround",
+    25:"Sand",
+    26:"LavaMountain",
+    27:"LavaForest",
+    28:"MetalGenerator",
+    29:"CrystalGenerator",
+    30:"FossilGenerator",
+    31:"WidgetGenerator",
+    32:"Lava",
+    33:"RockWall",
+    35:"LavaForest",
+}

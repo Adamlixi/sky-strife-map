@@ -207,7 +207,7 @@
         },
 
         init : function() {
-            sprite.src = 'assets/tilemap_32a.png';
+            sprite.src = 'assets/map-maker-tileset.png';
             map.canvas.width = width * tileSize;
             map.canvas.height = height * tileSize;
             this.drawTool();
